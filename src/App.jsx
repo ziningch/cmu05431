@@ -5,6 +5,9 @@ export default function App() {
   return (
     <div>
       <div className = 'toolbar'>
+        {/*drawing the sticky note tool*/}
+        <img className="tool-icon" src={sticky} alt="Image tool" />
+        
         {/*drawing the flowchart shape tool*/}
         <svg width = "44" height = "24" viewBox="0 0 44 24">
           <polygon
@@ -15,8 +18,7 @@ export default function App() {
             strokeLinejoin="round"
           />
         </svg>
-        {/*drawing the sticky note tool*/}
-        <img className="tool-icon" src={sticky} alt="Image tool" />
+        
         {/*drawing the text tool*/}
         <div className = 'tool-text'>T</div>
       </div>
