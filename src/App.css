@@ -30,8 +30,20 @@
   user-select: none;
 }
 
-.tool-icon {
-  height: 40px;
+.sticky-icon {
+  height: 44px;
+  width: auto;
+  user-select: none;
+}
+
+.map-icon {
+  height: 44px;
+  width: auto;
+  user-select: none;
+}
+
+.connector-icon {
+  height: 44px;
   width: auto;
   user-select: none;
 }
