@@ -1,4 +1,8 @@
 .toolbar {
+  /*
+  drawing the physical bottom fixed tool bar
+  it will look like it's elevated
+  */
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -6,7 +10,28 @@
   width: 400px;
   height: 70px;
   border-radius: 16px;
-  background-color: azure;
+  background-color: white;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   z-index: 10;
+
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+
+  gap: 24px;
+}
+
+.tool-text {
+  font-family: "Courier New", monospace;
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1;
+  color: #333333;
+  user-select: none;
+}
+
+.tool-icon {
+  height: 40px;
+  width: auto;
+  user-select: none;
 }

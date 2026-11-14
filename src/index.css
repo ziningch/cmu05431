@@ -4,7 +4,7 @@ body {
   margin: 0;
   width: 200vw;
   height: 200vw;
-  background-color: #ffffff;
+  background-color: whitesmoke;
   background-image: radial-gradient(#ccc 1.5px, transparent 1.5px);
   background-size: 24px 24px;
 }
