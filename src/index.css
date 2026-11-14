@@ -1,0 +1,14 @@
+body {
+  /* I added a grey grid so the background is not way too bright, this is also a popular choice among modern note apps that I
+     borrowed */
+  margin: 0;
+  background-color: #ffffff;
+  background-image: radial-gradient(#ccc 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+h1 {
+  text-align: center;
+  margin-top: auto;
+  font-family: PT-Serif;
+}
