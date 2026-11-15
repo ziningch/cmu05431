@@ -7,7 +7,7 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 400px;
+  width: fit-content;
   height: 70px;
   border-radius: 16px;
   background-color: white;
@@ -18,10 +18,36 @@
   align-items: center;
   padding: 0 20px;
 
-  gap: 24px;
+  gap: 20px;
 }
 
+.tool {
+  /*
+  rules for how each tool button is drawn
+  */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tool:focus {
+  outline: none;
+}
+
+.tool.active {
+  /*
+  background of tool changes color when it's active
+  */
+  background-color: lightskyblue;
+}
 .tool-text {
+  /*draws the text tool*/
   font-family: "Courier New", monospace;
   font-size: 48px;
   font-weight: 500;
@@ -47,3 +73,18 @@
   width: auto;
   user-select: none;
 }
+
+.divider {
+  width: 2px;
+  height: 36px;
+  background-color: #b0b0b0;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.mouse-icon {
+  height: 44px;
+  width: auto;
+  user-select: none;
+}
+
