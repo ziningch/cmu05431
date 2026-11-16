@@ -29,6 +29,7 @@ export default function App() {
           className ={`tool ${activeTool === "flowchart-shape" ? "active" : ""}`}
           onClick={()=>setActiveTool("flowchart-shape")}
         >
+          {/*drawing a diamond with svg*/}
           <svg width = "44" height = "44" viewBox="0 0 44 44">
           <polygon
             points="22,11 43,22 22,33 1,22"
