@@ -91,23 +91,61 @@
   cursor: text;
 }
 
-.text-box {
-  /*drawing a textbox
-  Default is medium size of 24px*/
-  font-family: "Courier New", monospace;
+.text-wrap {
   position: absolute;
-  min-width: 120px;
-  min-height: 1.5em;
-  padding: 4px;
-  font-size: 24px;
-  white-space: pre-wrap;
-  outline: none;
-  color: #333333;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
 }
 
-.text-box.selected {
-  /*When textbox is selected draw a dashed box around the text*/
+.text-wrap.movable {
+  cursor: move;
+}
+
+.text-wrap.selected {
   outline: 1px dashed #666;
+}
+
+.text-box {
+  flex: 1;
+  box-sizing: border-box;
+  padding: 4px;
+  font-family: "Courier New", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  outline: none;
+  color: #333333;
+  cursor: text;
+}
+
+.handle {
+  position: absolute;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  background-color: white;
+  border: 1.5px solid #666666;
+  border-radius: 50%;
+}
+
+.handle.nw {left: -5px; top: -5px; cursor: nwse-resize;}
+.handle.se {right: -5px; bottom: -5px; cursor: nwse-resize;}
+.handle.sw {left: -5px; top: -5px; cursor: nesw-resize;}
+.handle.ne {
+  right:-8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  color: #cc3333;
+  border-color: #cc3333;
+  cursor: pointer;
+  user-select: none;
 }
 
 .bold-button {
