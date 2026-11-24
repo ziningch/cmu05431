@@ -92,6 +92,7 @@
 }
 
 .text-box {
+  font-family: "Courier New", monospace;
   position: absolute;
   min-width: 120px;
   min-height: 1.5em;
@@ -104,4 +105,20 @@
 
 .text-box.selected {
   outline: 1px dashed #666;
+}
+
+.bold-button {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  font-weight: 800;
+  background-color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer
+}
+
+.bold-button.active {
+  background-color: lightskyblue
 }

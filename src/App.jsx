@@ -12,6 +12,14 @@ export default function App() {
   //keep track of which textbox is selected
   const [boxes, setBoxes] = useState([]);
   const [selectedID, setSelectedID] = useState(null);
+  const selected = boxes.find((box) => box.id === selectedID);
+
+  //text can be small, medium, or large
+  const sizeOptions = [
+    {label: "S", px: 18},
+    {label: "M", px: 24},
+    {label: "L", px: 30}
+  ]
 
   //focus textbox as soon as it appears on the canvas
   useEffect(() => {
@@ -23,6 +31,11 @@ export default function App() {
     setBoxes((prev) => prev.map((box) => (box.id === id ? {...box, text} : box)));
   }
 
+  //change all text in a textbox to bold
+  function toggleBold(id) {
+    setBoxes((prev) => prev.map((box) => (box.id === id ? {...box, bold: !box.bold} : box)));
+  }
+
   function handleCanvasClicked(event) {
     //remove empty textbox
     const keep = (box) => box.text.trim() !== "";
@@ -31,9 +44,10 @@ export default function App() {
       //draw the textbox by getting current bounding rectangle
       const rect = event.currentTarget.getBoundingClientRect();
       const id = Date.now();
+      //default is blank text
       setBoxes((prev) => [
         ...prev.filter(keep),
-        {id, x : event.clientX - rect.left, y : event.clientY - rect.top, text: ""},
+        {id, x : event.clientX - rect.left, y : event.clientY - rect.top, text: "", bold: false},
       ]);
       setSelectedID(id);
       setActiveTool("mouse-icon");
@@ -62,7 +76,7 @@ export default function App() {
           //let's user edit object
           contentEditable
           suppressContentEditableWarning
-          style={{left: box.x, top: box.y}}
+          style={{left: box.x, top: box.y, fontWeight: box.bold ? 700:400}}
 
           //clicking stops event from reaching the canvas which would deselect the textbox
           onClick = {(event) =>{
@@ -76,6 +90,22 @@ export default function App() {
           {box.text}
         </div>
        ))} 
+
+       {/*Draw the bold toggle */}
+       {selected && (
+        <button
+          className= {`bold-button ${selected.bold ? "active" : ""}`}
+          style = {{left:selected.x,top:selected.y-44}}
+          //Keep textbox focused when bold button is pressed
+          onMouseDown={(event)=>event.preventDefault()}
+          onClick ={(event)=>{
+            event.stopPropagation();
+            toggleBold(selected.id);
+          }}
+        >
+          B
+        </button>
+       )}
       </div>
 
       <div className = 'toolbar'>
