@@ -200,9 +200,32 @@ export default function App() {
           }}
         >
           {/*where the user text*/}
-          
+          <div
+            id = {`text-${box.id}`}
+            className = "text-box"
+
+            //let's user edit object
+            contentEditable
+            suppressContentEditableWarning
+            style = {{fontWeight:box.bold ? 700 : 400, fontSize: box.fontSize}}
+
+            //saves user input when they click away
+            onBlur = {(event) => updateText(box.id,event.currentTarget.innerText)}
+          >
           {box.text}
-        </div>
+          </div>
+
+          {/*corner handles, visible when using mouse tool */}
+          {box.id === selectedID && mouseActive && CORNERS.map((corner) => (
+            <div
+              key = {corner}
+              className = {`handle ${corner}`}
+              onMouseDown= {(event) => startDrag(event,box,"resize",corner)}
+            >
+              {corner === "ne" && "x"}
+            </div>git a
+          ))}
+       </div>
        ))} 
 
        {/*Draw the bold toggle */}
