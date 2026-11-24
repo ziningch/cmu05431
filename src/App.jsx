@@ -3,7 +3,7 @@ import sticky from "./assets/sticky.png";
 import connector from "./assets/connector.png";
 import mouse from "./assets/mouse.png";
 
-import {useState, useEffect} from "react";
+import {useState, useEffect, useRef} from "react";
 
 export default function App() {
   //keep track of which tool is active
@@ -38,7 +38,7 @@ export default function App() {
   const dragReference = useRef(null);
 
   //ignores double clicking right after drag
-  const justDraggedRef = useRef(null);
+  const justDraggedRef = useRef(false);
 
   //listens for mouse dragging and releasing anywhere on canvas
   useEffect(() => {
@@ -60,21 +60,21 @@ export default function App() {
           return {...box, x: drag.startBox.x+dx, y: drag.startBox.y+dy};
         }
 
-        //if draggin the corners, resize according to dragged corner and fix the diagonal corner
+        //if dragging the corners, resize according to dragged corner and fix the diagonal corner
         const start = drag.startBox;
         let {x,y,width,height} = start;
 
         //expanding width to the right
-        if (drag.CORNERS.include("e")) width = Math.max(minWidth,start.width+dx);
+        if (drag.corner.includes("e")) width = Math.max(minWidth,start.width+dx);
         //expanding height downwards
-        if (drag.CORNERS.include("s")) height = Math.max(minHeight,start.height+dy);
+        if (drag.corner.includes("s")) height = Math.max(minHeight,start.height+dy);
         //expanding width to the left
-        if (drag.CORNERS.include("e")) {
+        if (drag.corner.includes("w")) {
           width = Math.max(minWidth,start.width-dx);
           x = start.x+start.width-width;
         }
         //expanding height upwards
-        if (drag.CORNERS.include("n")) {
+        if (drag.corner.includes("n")) {
           height = Math.max(minHeight,start.height-dy);
           y = start.y+start.height-height;
         }
@@ -88,7 +88,7 @@ export default function App() {
       if (!drag) return;
 
       //pressing the upper right corner without dragging will delete the textbox
-      if (drag.CORNERS === "ne" && !drag.moved) {
+      if (drag.corner === "ne" && !drag.moved) {
         setBoxes((prev) => prev.filter((box) => box.id !== drag.id));
         setSelectedID(null);
         setSizeMenuOpen(false);
@@ -107,6 +107,11 @@ export default function App() {
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
+
+  //focus textbox as soon as it appears on the canvas
+  useEffect(() => {
+    if (selectedID) document.getElementById(`text-${selectedID}`)?.focus();
+  }, [selectedID]);
 
   //tracks the beginning of moving/resizing through drag
   function startDrag(event, box, mode, corner) {
@@ -160,7 +165,16 @@ export default function App() {
       //default is blank text
       setBoxes((prev) => [
         ...prev.filter(keep),
-        {id, x : event.clientX - rect.left, y : event.clientY - rect.top, text: "", bold: false, fontsize: 24},
+        {
+          id,
+          x : event.clientX - rect.left,
+          y : event.clientY - rect.top,
+          width: 180,
+          height: 56,
+          text: "",
+          bold: false,
+          fontSize: 24
+        },
       ]);
       setSelectedID(id);
       setActiveTool("mouse-icon");
@@ -181,8 +195,8 @@ export default function App() {
         <div
           //gives unique id to the current object
           key = {box.id}
-          clssName = {`text-wrap ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "active" : ""}`}
-          style={{left: box.x, top: box.y, fontWeight: box.bold ? 700:400, fontSize: box.fontSize}}
+          className = {`text-wrap ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "movable" : ""}`}
+          style={{left: box.x, top: box.y, width: box.width, minHeight: box.height}}
 
           //pressing the edge moves the textbox
           onMouseDown={(event) => {
@@ -199,7 +213,7 @@ export default function App() {
             setSizeMenuOpen(false);
           }}
         >
-          {/*where the user text*/}
+          {/*where the user types text*/}
           <div
             id = {`text-${box.id}`}
             className = "text-box"
@@ -223,7 +237,7 @@ export default function App() {
               onMouseDown= {(event) => startDrag(event,box,"resize",corner)}
             >
               {corner === "ne" && "x"}
-            </div>git a
+            </div>
           ))}
        </div>
        ))} 
@@ -252,7 +266,7 @@ export default function App() {
 
           onMouseDown={(event)=>event.preventDefault()}
 
-          //when cliked, stop event from reaching the canvas and flip the state of whether the menu is open
+          //when clicked, stop event from reaching the canvas and flip the state of whether the menu is open
           onClick ={(event)=>{
             event.stopPropagation();
             setSizeMenuOpen(!sizeMenuOpen);
@@ -264,15 +278,15 @@ export default function App() {
        )}
 
        {/*Draw the size popup which closes as soon as a size is picked*/}
-       {selected && (
-        <button
+       {selected && sizeMenuOpen && (
+        <div
           className= "size-menu"
           style = {{left:selected.x+40,top:selected.y-84}}
         >
           {sizeOptions.map((option) => (
             <button
               key = {option.label}
-              className = {`sizeOption ${selected.fontSize === option.px ? "active" : ""}`}
+              className = {`size-option ${selected.fontSize === option.px ? "active" : ""}`}
               onMouseDown = {(event) => event.preventDefault()}
 
               //when the size popup button is clicked, change size accordingly
@@ -284,7 +298,7 @@ export default function App() {
               {option.label}
             </button>
           ))}
-        </button>
+        </div>
        )}
       </div>
 
