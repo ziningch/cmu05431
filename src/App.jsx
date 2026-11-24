@@ -22,12 +22,110 @@ export default function App() {
     {label: "S", px: 18},
     {label: "M", px: 24},
     {label: "L", px: 30}
-  ]
+  ];
 
-  //focus textbox as soon as it appears on the canvas
+  //representing the textbox corners
+  const CORNERS = ["nw", "ne", "sw", "se"];
+
+  //minimum resizing size for textbox
+  const minWidth = 60;
+  const minHeight = 40;
+
+  //mouse tool is active when it's picked or before anything else is picked
+  const mouseActive = (activeTool === null || activeTool === "mouse-icon");
+
+  //keep track of current move or resize
+  const dragReference = useRef(null);
+
+  //ignores double clicking right after drag
+  const justDraggedRef = useRef(null);
+
+  //listens for mouse dragging and releasing anywhere on canvas
   useEffect(() => {
-    if (selectedID) document.getElementById(`text-${selectedID}`)?.focus();
-  }, [selectedID]);
+
+    function handleMouseMove(event) {
+      const drag = dragReference.current;
+      if (!drag) return;
+
+      //determining if it's just a slight movement or an actual click
+      const dx = event.clientX - drag.startX;
+      const dy = event.clientY - drag.startY;
+      if (Math.abs(dx) + Math.abs(dy) >  3) drag.moved = true;
+
+      setBoxes((prev) => prev.map((box) => {
+        if (box.id !== drag.id) return box;
+
+        //move textbox to mouse if cursor is on edge of textbox
+        if (drag.mode === "move") {
+          return {...box, x: drag.startBox.x+dx, y: drag.startBox.y+dy};
+        }
+
+        //if draggin the corners, resize according to dragged corner and fix the diagonal corner
+        const start = drag.startBox;
+        let {x,y,width,height} = start;
+
+        //expanding width to the right
+        if (drag.CORNERS.include("e")) width = Math.max(minWidth,start.width+dx);
+        //expanding height downwards
+        if (drag.CORNERS.include("s")) height = Math.max(minHeight,start.height+dy);
+        //expanding width to the left
+        if (drag.CORNERS.include("e")) {
+          width = Math.max(minWidth,start.width-dx);
+          x = start.x+start.width-width;
+        }
+        //expanding height upwards
+        if (drag.CORNERS.include("n")) {
+          height = Math.max(minHeight,start.height-dy);
+          y = start.y+start.height-height;
+        }
+
+        return {...box,x,y,width,height};
+      }));
+    }
+    
+    function handleMouseUp() {
+      const drag = dragReference.current;
+      if (!drag) return;
+
+      //pressing the upper right corner without dragging will delete the textbox
+      if (drag.CORNERS === "ne" && !drag.moved) {
+        setBoxes((prev) => prev.filter((box) => box.id !== drag.id));
+        setSelectedID(null);
+        setSizeMenuOpen(false);
+      }
+
+      dragReference.current = null;
+      justDraggedRef.current = true;
+      setTimeout(()=> {justDraggedRef.current = false;}, 0);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  //tracks the beginning of moving/resizing through drag
+  function startDrag(event, box, mode, corner) {
+    //stop highlighting/changing text, keep textbox selected
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedID(box.id);
+    setSizeMenuOpen(false);
+    
+    dragReference.current = {
+      id: box.id,
+      mode,
+      corner,
+      startX: event.clientX,
+      startY: event.clientY,
+      startBox: {x: box.x, y: box.y, width: box.width, height: box.height},
+      moved: false
+    };
+  }
 
   //saves users text input in the correct textbox
   function updateText(id, text) {
@@ -46,6 +144,11 @@ export default function App() {
   }
 
   function handleCanvasClicked(event) {
+    //ignores click right after dragging
+    if (justDraggedRef.current) return;
+    
+    setSizeMenuOpen(false);
+
     //remove empty textbox
     const keep = (box) => box.text.trim() !== "";
 
@@ -53,6 +156,7 @@ export default function App() {
       //draw the textbox by getting current bounding rectangle
       const rect = event.currentTarget.getBoundingClientRect();
       const id = Date.now();
+
       //default is blank text
       setBoxes((prev) => [
         ...prev.filter(keep),
@@ -64,7 +168,6 @@ export default function App() {
       //if we are not using textbox tool just clear the empty textboxes
       setBoxes((prev)=>prev.filter(keep));
       setSelectedID(null);
-      setSizeMenuOpen(false);
     }
   }
 
@@ -78,26 +181,26 @@ export default function App() {
         <div
           //gives unique id to the current object
           key = {box.id}
-          id = {`text-${box.id}`}
-
-          //it is always a textbox object and only selected if id matches the current id being selected
-          className = {`text-box ${box.id === selectedID ? "selected" : ""}`}
-
-          //let's user edit object
-          contentEditable
-          suppressContentEditableWarning
+          clssName = {`text-wrap ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "active" : ""}`}
           style={{left: box.x, top: box.y, fontWeight: box.bold ? 700:400, fontSize: box.fontSize}}
+
+          //pressing the edge moves the textbox
+          onMouseDown={(event) => {
+            if (mouseActive && event.target === event.currentTarget) {
+              startDrag(event,box,"move");
+            }
+          }}
 
           //clicking stops event from reaching the canvas which would deselect the textbox
           onClick = {(event) =>{
             event.stopPropagation();
+            if (justDraggedRef.current) return;
             setSelectedID(box.id);
             setSizeMenuOpen(false);
           }}
-
-          //user's input is saved when they click away
-          onBlur = {(event) => updateText(box.id, event.currentTarget.innerText)}
         >
+          {/*where the user text*/}
+          
           {box.text}
         </div>
        ))} 
@@ -132,7 +235,7 @@ export default function App() {
             setSizeMenuOpen(!sizeMenuOpen);
           }}
         >
-          //Draw size label according to current selected textbox's font size
+          {/*Draw size label according to current selected textbox's font size*/}
           {sizeOptions.find((option)=>option.px === selected.fontSize)?.label}
         </button>
        )}
