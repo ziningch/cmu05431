@@ -92,6 +92,8 @@
 }
 
 .text-box {
+  /*drawing a textbox
+  Default is medium size of 24px*/
   font-family: "Courier New", monospace;
   position: absolute;
   min-width: 120px;
@@ -104,10 +106,12 @@
 }
 
 .text-box.selected {
+  /*When textbox is selected draw a dashed box around the text*/
   outline: 1px dashed #666;
 }
 
 .bold-button {
+  /*Draw a floating bold button floating on top of the top of the textbox*/
   position: absolute;
   width: 32px;
   height: 32px;
@@ -121,4 +125,43 @@
 
 .bold-button.active {
   background-color: lightskyblue
+}
+
+.size-button {
+  /*Draw a size button floating on the right of the bold button*/
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  font-weight: 800;
+  background-color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer
+}
+
+.size-menu {
+  /*Drawing popup for selecting size, goes away when selection is made*/
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.size-option {
+  /*Defining each button in the size popup*/
+  width: 32px;
+  height: 32px;
+  font-weight: 800;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.size-option.active {
+  background-color: lightskyblue;
 }

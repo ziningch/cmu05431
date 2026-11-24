@@ -14,7 +14,10 @@ export default function App() {
   const [selectedID, setSelectedID] = useState(null);
   const selected = boxes.find((box) => box.id === selectedID);
 
-  //text can be small, medium, or large
+  //whether the size popup is showing
+  const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
+
+  //text can be small, medium, or large, this is the literal for representing each pixel size
   const sizeOptions = [
     {label: "S", px: 18},
     {label: "M", px: 24},
@@ -36,6 +39,12 @@ export default function App() {
     setBoxes((prev) => prev.map((box) => (box.id === id ? {...box, bold: !box.bold} : box)));
   }
 
+  //set size of given textbox and close popup
+  function changeSize(id, fontSize) {
+    setBoxes((prev) => prev.map((box) => (box.id === id ? {...box,fontSize} : box)));
+    setSizeMenuOpen(false);
+  }
+
   function handleCanvasClicked(event) {
     //remove empty textbox
     const keep = (box) => box.text.trim() !== "";
@@ -47,7 +56,7 @@ export default function App() {
       //default is blank text
       setBoxes((prev) => [
         ...prev.filter(keep),
-        {id, x : event.clientX - rect.left, y : event.clientY - rect.top, text: "", bold: false},
+        {id, x : event.clientX - rect.left, y : event.clientY - rect.top, text: "", bold: false, fontsize: 24},
       ]);
       setSelectedID(id);
       setActiveTool("mouse-icon");
@@ -55,6 +64,7 @@ export default function App() {
       //if we are not using textbox tool just clear the empty textboxes
       setBoxes((prev)=>prev.filter(keep));
       setSelectedID(null);
+      setSizeMenuOpen(false);
     }
   }
 
@@ -76,12 +86,13 @@ export default function App() {
           //let's user edit object
           contentEditable
           suppressContentEditableWarning
-          style={{left: box.x, top: box.y, fontWeight: box.bold ? 700:400}}
+          style={{left: box.x, top: box.y, fontWeight: box.bold ? 700:400, fontSize: box.fontSize}}
 
           //clicking stops event from reaching the canvas which would deselect the textbox
           onClick = {(event) =>{
             event.stopPropagation();
             setSelectedID(box.id);
+            setSizeMenuOpen(false);
           }}
 
           //user's input is saved when they click away
@@ -104,6 +115,49 @@ export default function App() {
           }}
         >
           B
+        </button>
+       )}
+
+       {/*Draw the size button*/}
+       {selected && (
+        <button
+          className= "size-button"
+          style = {{left:selected.x+40,top:selected.y-44}}
+
+          onMouseDown={(event)=>event.preventDefault()}
+
+          //when cliked, stop event from reaching the canvas and flip the state of whether the menu is open
+          onClick ={(event)=>{
+            event.stopPropagation();
+            setSizeMenuOpen(!sizeMenuOpen);
+          }}
+        >
+          //Draw size label according to current selected textbox's font size
+          {sizeOptions.find((option)=>option.px === selected.fontSize)?.label}
+        </button>
+       )}
+
+       {/*Draw the size popup which closes as soon as a size is picked*/}
+       {selected && (
+        <button
+          className= "size-menu"
+          style = {{left:selected.x+40,top:selected.y-84}}
+        >
+          {sizeOptions.map((option) => (
+            <button
+              key = {option.label}
+              className = {`sizeOption ${selected.fontSize === option.px ? "active" : ""}`}
+              onMouseDown = {(event) => event.preventDefault()}
+
+              //when the size popup button is clicked, change size accordingly
+              onClick = {(event) => {
+                event.stopPropagation()
+                changeSize(selected.id, option.px);
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
         </button>
        )}
       </div>
