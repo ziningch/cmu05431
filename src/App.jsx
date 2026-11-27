@@ -14,8 +14,18 @@ export default function App() {
   const [selectedID, setSelectedID] = useState(null);
   const selected = boxes.find((box) => box.id === selectedID);
 
+  //determine whether the current selected component is textbox
+  const selectedText = selected?.type === "text";
+
   //whether the size popup is showing
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
+
+  //keep track of sticky menu visibility and current sticky color
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
+  const [stickyColor, setStickyColor] = useState(null);
+
+  //keep track of cursor position so a tiny square representing the sticky can fall under it
+  const [cursurPos, setCursorPos] = useState(null);
 
   //text can be small, medium, or large, this is the literal for representing each pixel size
   const sizeOptions = [
@@ -24,12 +34,24 @@ export default function App() {
     {label: "L", px: 30}
   ];
 
+  //stickies can be pink, yellow, blue, green, and purple
+  const stickyColors = [
+    {name: "pink", hex: "#F9A8C9"},
+    {name: "yellow", hex: "#FFE680"},
+    {name: "blue", hex: "#9CCBF5"},
+    {name: "green", hex: "#A8E0A0"},
+    {name: "purple", hex: "#C9AEF0"}
+  ];
+
   //representing the textbox corners
   const CORNERS = ["nw", "ne", "sw", "se"];
 
   //minimum resizing size for textbox
   const minWidth = 60;
   const minHeight = 40;
+
+  //minimum size for sticky note
+  const stickyMin = 120;
 
   //mouse tool is active when it's picked or before anything else is picked
   const mouseActive = (activeTool === null || activeTool === "mouse-icon");
@@ -64,18 +86,14 @@ export default function App() {
         const start = drag.startBox;
         let {x,y,width,height} = start;
 
-        //expanding width to the right
-        if (drag.corner.includes("e")) width = Math.max(minWidth,start.width+dx);
-        //expanding height downwards
-        if (drag.corner.includes("s")) height = Math.max(minHeight,start.height+dy);
-        //expanding width to the left
+        if (drag.corner.includes("e")) width = Math.max(drag.minW,start.width+dx);
+        if (drag.corner.includes("s")) height = Math.max(drag.minH,start.height+dy);
         if (drag.corner.includes("w")) {
-          width = Math.max(minWidth,start.width-dx);
+          width = Math.max(drag.minW,start.width-dx);
           x = start.x+start.width-width;
         }
-        //expanding height upwards
         if (drag.corner.includes("n")) {
-          height = Math.max(minHeight,start.height-dy);
+          height = Math.max(drag.minH,start.height-dy);
           y = start.y+start.height-height;
         }
 
@@ -113,6 +131,13 @@ export default function App() {
     if (selectedID) document.getElementById(`text-${selectedID}`)?.focus();
   }, [selectedID]);
 
+  function chooseTool(tool) {
+    setActiveTool(tool);
+    if (tool !== "sticky-icon") {
+      setColorMenuOpen(false);
+    }
+  }
+
   //tracks the beginning of moving/resizing through drag
   function startDrag(event, box, mode, corner) {
     //stop highlighting/changing text, keep textbox selected
@@ -128,6 +153,8 @@ export default function App() {
       startX: event.clientX,
       startY: event.clientY,
       startBox: {x: box.x, y: box.y, width: box.width, height: box.height},
+      minW: box.type === "sticky" ? stickyMin : minWidth,
+      minH: box.type === "sticky" ? stickyMin : minHeight,
       moved: false
     };
   }
@@ -154,8 +181,13 @@ export default function App() {
     
     setSizeMenuOpen(false);
 
+    if (colorMenuOpen) {
+      setColorMenuOpen(false);
+      return;
+    }
+
     //remove empty textbox
-    const keep = (box) => box.text.trim() !== "";
+    const keep = (box) => box.type === "sticky" || box.text.trim() !== "";
 
     if (activeTool === "tool-text") {
       //draw the textbox by getting current bounding rectangle
@@ -167,6 +199,7 @@ export default function App() {
         ...prev.filter(keep),
         {
           id,
+          type: "text",
           x : event.clientX - rect.left,
           y : event.clientY - rect.top,
           width: 180,
@@ -175,6 +208,25 @@ export default function App() {
           bold: false,
           fontSize: 24
         },
+      ]);
+      setSelectedID(id);
+      setActiveTool("mouse-icon");
+    } else if (activeTool === "sticky-icon" && stickyColor) {
+      //places sticky aligned with the cursor with the picked color
+      const rect = event.currentTarget.getBoundingClientRect();
+      const id = Date.now();
+
+      setBoxes((prev) => [
+        ...prev.filter(keep), {
+          id,
+          type: "sticky",
+          x : event.clientX - rect.left,
+          y : event.clientY - rect.top,
+          width: 160,
+          height: 160,
+          text: "",
+          color: stickyColor
+        }
       ]);
       setSelectedID(id);
       setActiveTool("mouse-icon");
@@ -187,16 +239,25 @@ export default function App() {
 
   return (
     <div>
-      {/*Drawing the canvas for the textbox*/}
+      {/*Drawing the canvas for the textbox and stickies*/}
       <div className = {`canvas ${activeTool === "tool-text" ? "text-mode" : ""}`}
+      //keep mouse shape and keep track of its position
+      onMouseMove={(event) => setCursorPos({x: event.clientX, y: event.clientY})}
+      onMouseLeave={()=>setCursorPos(null)}
       onClick = {handleCanvasClicked}
       >
        {boxes.map((box) => (
         <div
           //gives unique id to the current object
           key = {box.id}
-          className = {`text-wrap ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "movable" : ""}`}
-          style={{left: box.x, top: box.y, width: box.width, minHeight: box.height}}
+          className = {`text-wrap ${box.type === "sticky" ? "sticky" : ""} ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "movable" : ""}`}
+          style={{
+            left: box.x,
+            top: box.y,
+            width: box.width,
+            minHeight: box.height,
+            backgroundColor: box.type === "sticky" ? box.color : undefined
+          }}
 
           //pressing the edge moves the textbox
           onMouseDown={(event) => {
@@ -221,7 +282,7 @@ export default function App() {
             //let's user edit object
             contentEditable
             suppressContentEditableWarning
-            style = {{fontWeight:box.bold ? 700 : 400, fontSize: box.fontSize}}
+            style = {{fontWeight:box.bold ? 700 : 400, fontSize: box.type === "sticky" ? 20 : box.fontSize}}
 
             //saves user input when they click away
             onBlur = {(event) => updateText(box.id,event.currentTarget.innerText)}
@@ -243,7 +304,7 @@ export default function App() {
        ))} 
 
        {/*Draw the bold toggle */}
-       {selected && (
+       {selectedText && (
         <button
           className= {`bold-button ${selected.bold ? "active" : ""}`}
           style = {{left:selected.x,top:selected.y-44}}
@@ -259,7 +320,7 @@ export default function App() {
        )}
 
        {/*Draw the size button*/}
-       {selected && (
+       {selectedText && (
         <button
           className= "size-button"
           style = {{left:selected.x+40,top:selected.y-44}}
@@ -278,7 +339,7 @@ export default function App() {
        )}
 
        {/*Draw the size popup which closes as soon as a size is picked*/}
-       {selected && sizeMenuOpen && (
+       {selectedText && sizeMenuOpen && (
         <div
           className= "size-menu"
           style = {{left:selected.x+40,top:selected.y-84}}
@@ -306,7 +367,7 @@ export default function App() {
         {/*drawing the mouse tool*/}
         <button
           className ={`tool ${activeTool === "mouse-icon" ? "active" : ""}`}
-          onClick={()=>setActiveTool("mouse-icon")}
+          onClick={()=>chooseTool("mouse-icon")}
         >
           <img className= "mouse-icon" src={mouse} alt="mouse tool" />
         </button>
@@ -318,7 +379,7 @@ export default function App() {
         {/*drawing the flowchart shape tool*/}
         <button
           className ={`tool ${activeTool === "flowchart-shape" ? "active" : ""}`}
-          onClick={()=>setActiveTool("flowchart-shape")}
+          onClick={()=>chooseTool("flowchart-shape")}
         >
           {/*drawing a diamond with svg*/}
           <svg width = "44" height = "44" viewBox="0 0 44 44">
@@ -336,29 +397,59 @@ export default function App() {
         {/*drawing the text tool*/}
         <button
           className ={`tool ${activeTool === "tool-text" ? "active" : ""}`}
-          onClick={()=>setActiveTool("tool-text")}
+          onClick={()=>chooseTool("tool-text")}
         >
           <div className = 'tool-text'>T</div>
         </button>      
 
-        {/*drawing the sticky note tool*/}
-        <button
-          className ={`tool ${activeTool === "sticky-icon" ? "active" : ""}`}
-          onClick={()=>setActiveTool("sticky-icon")}
-        >
-          <img className="sticky-icon" src={sticky} alt="sticky note tool" />
-        </button>
+        {/*drawing the sticky note tool, with its color popup centered above it*/}
+        <div className = "sticky-wrap">
+          <button
+            className ={`tool ${activeTool === "sticky-icon" ? "active" : ""}`}
+            onClick={()=>{
+              setActiveTool("sticky-icon");
+              setColorMenuOpen(true);
+            }}
+          >
+            <img className="sticky-icon" src={sticky} alt="sticky note tool" />
+          </button>
+
+          {/*Draw the popup menu for choosing sticky note's color */}
+          {colorMenuOpen && (
+            <div className = "color-menu">
+              {stickyColors.map((color) => (
+                <button
+                  key = {color.name}
+                  className = {`color-swatch ${stickyColor === color.hex ? "active" : ""}`}
+                  style = {{backgroundColor: color.hex}}
+                  aria-label = {`${color.name} sticky note`}
+                  onClick = {() => {
+                    setStickyColor(color.hex);
+                    setColorMenuOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/*drawing the connector tool*/}
         <button
           className ={`tool ${activeTool === "connector-icon" ? "active" : ""}`}
-          onClick={()=>setActiveTool("connector-icon")}
+          onClick={()=>chooseTool("connector-icon")}
         >
           <img className="connector-icon" src={connector} alt="connector tool" />
         </button>
 
-
       </div>
+
+      {/*Draw picked color square under cursor */}
+      {activeTool === "sticky-icon" && stickyColor && cursurPos && !colorMenuOpen && (
+        <div
+          className = "sticky-cursor"
+          style = {{left: cursurPos.x+2, top: cursurPos.y+22, backgroundColor: stickyColor}}
+        />
+      )}
     </div>
   );
 }

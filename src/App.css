@@ -107,6 +107,10 @@
   outline: 1px dashed #666;
 }
 
+.text-wrap.sticky {
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
 .text-box {
   flex: 1;
   box-sizing: border-box;
@@ -140,10 +144,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 12px;
   line-height: 1;
-  color: #cc3333;
-  border-color: #cc3333;
+  color: rgb(255, 100, 100);
+  border-color: rgb(255, 100, 100);
   cursor: pointer;
   user-select: none;
 }
@@ -202,4 +207,47 @@
 
 .size-option.active {
   background-color: lightskyblue;
+}
+
+.sticky-wrap {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.color-menu {
+  position: absolute;
+  bottom: calc(100% + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-swatch:hover,
+.color-swatch.active {
+  border-color: #333333;
+}
+
+.sticky-cursor {
+  position: fixed;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #333333;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 20;
 }
