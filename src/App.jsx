@@ -5,7 +5,77 @@ import mouse from "./assets/mouse.png";
 
 import {useState, useEffect, useRef} from "react";
 
+//six flowchart shapes shown in the popup menu
+const shapeOptions = [
+  {key: "decision", name: "Decision"},
+  {key: "process", name: "Process"},
+  {key: "terminator", name: "Start/End"},
+  {key: "io", name: "Input/Output"},
+  {key: "document", name: "Document"},
+  {key: "database", name: "Database"}
+];
+
+//const border and fill for all shapes
+const shapeAttributes = {
+  fill: "white",
+  stroke: "#333333",
+  strokeWidth: 1.5,
+  strokeLinejoin: "round",
+  vectorEffect: "non-scaling-stroke"
+};
+
+//draw the shapes that fill the container box
+function ShapeSvg({shape, className}) {
+  return (
+    <svg className = {className} viewBox = "0 0 100 100" preserveAspectRatio = "none">
+      {/*decision diamond */}
+      {shape === "decision" && (
+        <polygon points = "50,0 100,50 50,100, 0,50" {...shapeAttributes} />
+      )}
+
+      {/*process rectangle */}
+      {shape === "process" && (
+        <rect x = "0" y = "0" width = "100" height = "100" {...shapeAttributes} />
+      )}
+
+      {/*terminator ellipse */}
+      {shape === "terminator" && (
+        <ellipse cx = "50" cy = "50" rx = "50" ry = "50" {...shapeAttributes} />
+      )}
+
+      {/*io parallelogram */}
+      {shape === "io" && (
+        <polygon points = "15,0 100,0 85,100, 0,100" {...shapeAttributes} />
+      )}
+
+      {/*document*/}
+      {shape === "document" && (
+        <path d = "M0,0 H100 v88 C85,78 70,78 50,88 C30,98 15,98 0,88 Z" {...shapeAttributes} />
+      )}
+      
+      {/*database cylinder */}
+      {shape === "database" && (
+        <>
+          <path d = "M0,12 V88 A50,12 0 0 0 100,88 V12 Z" {...shapeAttributes} />
+          <ellipse cx = "50" cy = "12" rx = "50" ry = "12" {...shapeAttributes} />
+        </>        
+      )}
+    </svg>
+  );
+}
+
 export default function App() {
+
+  //width and height of each flowchart shape
+  const shapeDefaults = {
+    decision: {w: 170, h: 110},
+    process: {w: 160, h: 90},
+    terminator: {w: 160, h: 70},
+    io: {w: 170, h: 90},
+    document: {w: 160, h: 100},
+    database: {w: 120, h: 130}
+  };
+
   //keep track of which tool is active
   const [activeTool, setActiveTool] = useState(null);
 
@@ -17,12 +87,18 @@ export default function App() {
   //determine whether the current selected component is textbox
   const selectedText = selected?.type === "text";
 
+  const canFormat = selected?.type === "text" || selected?.type === "shape";
+
   //whether the size popup is showing
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
 
   //keep track of sticky menu visibility and current sticky color
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [stickyColor, setStickyColor] = useState(null);
+
+  //keep track of flowchart shape menu visibility and current shape
+  const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
+  const [shapeType, setShapeType] = useState(null);
 
   //keep track of cursor position so a tiny square representing the sticky can fall under it
   const [cursurPos, setCursorPos] = useState(null);
@@ -52,6 +128,10 @@ export default function App() {
 
   //minimum size for sticky note
   const stickyMin = 120;
+
+  //minimum size for flochart shapes
+  const shapeMinWidth = 80;
+  const shapeMinHeight = 60;
 
   //mouse tool is active when it's picked or before anything else is picked
   const mouseActive = (activeTool === null || activeTool === "mouse-icon");
@@ -133,9 +213,8 @@ export default function App() {
 
   function chooseTool(tool) {
     setActiveTool(tool);
-    if (tool !== "sticky-icon") {
-      setColorMenuOpen(false);
-    }
+    setColorMenuOpen(false);
+    setShapeMenuOpen(false);
   }
 
   //tracks the beginning of moving/resizing through drag
@@ -145,6 +224,18 @@ export default function App() {
     event.stopPropagation();
     setSelectedID(box.id);
     setSizeMenuOpen(false);
+
+    //each type of box has its own min values
+    let minW = minWidth;
+    let minH = minHeight;
+    if (box.type==="sticky") {
+      minW = stickyMin;
+      minH = stickyMin;
+    }
+    if(box.type === "shape") {
+      minW = shapeMinWidth;
+      minH = shapeMinHeight;
+    }
     
     dragReference.current = {
       id: box.id,
@@ -153,8 +244,8 @@ export default function App() {
       startX: event.clientX,
       startY: event.clientY,
       startBox: {x: box.x, y: box.y, width: box.width, height: box.height},
-      minW: box.type === "sticky" ? stickyMin : minWidth,
-      minH: box.type === "sticky" ? stickyMin : minHeight,
+      minW: minW,
+      minH: minH,
       moved: false
     };
   }
@@ -181,13 +272,15 @@ export default function App() {
     
     setSizeMenuOpen(false);
 
-    if (colorMenuOpen) {
+    //close popups
+    if (colorMenuOpen || shapeMenuOpen) {
       setColorMenuOpen(false);
+      setShapeMenuOpen(false);
       return;
     }
 
     //remove empty textbox
-    const keep = (box) => box.type === "sticky" || box.text.trim() !== "";
+    const keep = (box) => box.type !== "text" || box.text.trim() !== "";
 
     if (activeTool === "tool-text") {
       //draw the textbox by getting current bounding rectangle
@@ -230,6 +323,27 @@ export default function App() {
       ]);
       setSelectedID(id);
       setActiveTool("mouse-icon");
+    } else if (activeTool === "flowchart-shape" && shapeType) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const id = Date.now();
+      const size = shapeDefaults[shapeType];
+
+      setBoxes((prev) => [
+        ...prev.filter(keep), {
+          id,
+          type: "shape",
+          shape: shapeType,
+          x: event.clientX-rect.left,
+          y: event.clientY-rect.top,
+          width: size.w,
+          height: size.h,
+          text: "",
+          bold: false,
+          fontSize: 18
+        }
+      ]);
+      setSelectedID(id);
+      setActiveTool("mouse-icon");
     } else {
       //if we are not using textbox tool just clear the empty textboxes
       setBoxes((prev)=>prev.filter(keep));
@@ -250,7 +364,7 @@ export default function App() {
         <div
           //gives unique id to the current object
           key = {box.id}
-          className = {`text-wrap ${box.type === "sticky" ? "sticky" : ""} ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "movable" : ""}`}
+          className = {`text-wrap ${box.type === "sticky" ? "sticky" : ""} ${box.type === "shape" ? `shape shape-${box.shape}` : ""} ${box.id === selectedID ? "selected" : ""} ${mouseActive ? "movable" : ""}`}
           style={{
             left: box.x,
             top: box.y,
@@ -274,6 +388,11 @@ export default function App() {
             setSizeMenuOpen(false);
           }}
         >
+          {/* Draw the shape behind the text*/}
+          {box.type === "shape" && (
+            <ShapeSvg shape = {box.shape} className = "shape-graphic" />
+          )}
+
           {/*where the user types text*/}
           <div
             id = {`text-${box.id}`}
@@ -304,7 +423,7 @@ export default function App() {
        ))} 
 
        {/*Draw the bold toggle */}
-       {selectedText && (
+       {canFormat && (
         <button
           className= {`bold-button ${selected.bold ? "active" : ""}`}
           style = {{left:selected.x,top:selected.y-44}}
@@ -320,7 +439,7 @@ export default function App() {
        )}
 
        {/*Draw the size button*/}
-       {selectedText && (
+       {canFormat && (
         <button
           className= "size-button"
           style = {{left:selected.x+40,top:selected.y-44}}
@@ -339,7 +458,7 @@ export default function App() {
        )}
 
        {/*Draw the size popup which closes as soon as a size is picked*/}
-       {selectedText && sizeMenuOpen && (
+       {canFormat && sizeMenuOpen && (
         <div
           className= "size-menu"
           style = {{left:selected.x+40,top:selected.y-84}}
@@ -376,22 +495,47 @@ export default function App() {
         {/*drawing the tool divider*/}
         <div className = 'divider'></div>
 
-        {/*drawing the flowchart shape tool*/}
-        <button
-          className ={`tool ${activeTool === "flowchart-shape" ? "active" : ""}`}
-          onClick={()=>chooseTool("flowchart-shape")}
-        >
-          {/*drawing a diamond with svg*/}
-          <svg width = "44" height = "44" viewBox="0 0 44 44">
-          <polygon
-            points="22,11 43,22 22,33 1,22"
-            fill="white"
-            stroke="#333333"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          </svg>
-        </button>
+        {/*Drawing the flowchart shape tool with the popup menu */}
+        <div className = "flowchart-wrap">
+          <button
+            className = {`tool ${activeTool === "flowchart-shape" ? "active" : ""}`}
+            onClick = {() => {
+              setActiveTool("flowchart-shape");
+              setShapeMenuOpen(true);
+              setColorMenuOpen(false);
+            }}
+          >
+            <svg width = "44" height = "44" viewBox = "0 0 44 44">
+              <polygon
+              points = "22,11 43,22 22,33 1,22"
+              fill = "white"
+              stroke = "#333333"
+              strokeWidth= "1.5"
+              strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          {/*Draw the popup menu*/}
+          {shapeMenuOpen && (
+            <div className = "shape-menu">
+              {shapeOptions.map((option) => (
+                <button
+                  key = {option.key}
+                  className = {`shape-option ${shapeType === option.key ? "active" : ""}`}
+                  title = {option.name}
+                  aria-label = {`${option.name} shape`}
+                  onClick = {() => {
+                    setShapeType(option.key);
+                    setShapeMenuOpen(false);
+                  }}
+                >
+                  <ShapeSvg shape = {option.key} className = "shape-icon" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
 
         {/*drawing the text tool*/}
@@ -409,6 +553,7 @@ export default function App() {
             onClick={()=>{
               setActiveTool("sticky-icon");
               setColorMenuOpen(true);
+              setShapeMenuOpen(false);
             }}
           >
             <img className="sticky-icon" src={sticky} alt="sticky note tool" />
@@ -449,6 +594,16 @@ export default function App() {
           className = "sticky-cursor"
           style = {{left: cursurPos.x+2, top: cursurPos.y+22, backgroundColor: stickyColor}}
         />
+      )}
+
+      {/*Draw picked flowchart shape under cursor */}
+      {activeTool === "flowchart-shape" && shapeType && cursurPos && !shapeMenuOpen && (
+        <div
+          className = "shape-cursor"
+          style = {{left: cursurPos.x+2, top: cursurPos.y+22}}
+        >
+          <ShapeSvg shape = {shapeType} className = "shape-icon" />
+        </div>
       )}
     </div>
   );
